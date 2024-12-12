@@ -1,51 +1,75 @@
-import React from 'react'
-import { ArrayInput, BooleanInput, Create, ImageField, ImageInput, NumberInput, ReferenceInput, required, SelectField, SelectInput, SimpleForm, SimpleFormIterator, TextInput } from 'react-admin'
-import CategoryTypeInput from './Category/CategoryTypeInput';
-import { colorSelector } from '../../components/Filters/ColorsFilter';
-
-export const sizeSelector =["S","M","L","XL","XXL"]
+import React from "react";
+import {
+  Create,
+  ImageInput,
+  NumberInput,
+  SimpleForm,
+  TextInput,
+  required,
+  useNotify,
+} from "react-admin";
+import axios from "axios";
 
 const CreateProduct = () => {
+  const notify = useNotify();
+
+  // Function to upload image via the `uploads` API
+  const uploadImage = async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      debugger;
+
+      const response = await axios.post(
+        "http://localhost:8080/api/uploads/images",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+      return response?.data; // Assuming the API returns the file path
+    } catch (error) {
+      console.error("Image upload failed:", error);
+      notify("Image upload failed. Please try again.", { type: "error" });
+      throw error;
+    }
+  };
+
+  // Transform the form data before submission
+  const transformData = async (data) => {
+    if (data.image && data.image.rawFile) {
+      try {
+        const imagePath = await uploadImage(data.image.rawFile);
+        data.image = `http://localhost:8080${imagePath}`; // Set the public URL
+      } catch {
+        throw new Error("Image upload failed.");
+      }
+    }
+    return data;
+  };
+
   return (
-    <Create>
-        <SimpleForm>
-            <TextInput source='name' validate={[required()]}/>
-            <TextInput source='slug' validate={[required()]}/>
-            <TextInput source='description' validate={[required()]}/>
-            <NumberInput source='price' validate={[required()]}/>
-            <TextInput source='brand' validate={[required()]}/>
-            {/* Refer category fields */}
-            <ReferenceInput source='categoryId' reference='category'/>
-            <CategoryTypeInput />
-
-            <ImageInput source='thumbnail' label={'Thumbnail'} >
-            <ImageField source="src" title="title" />
-            </ImageInput>
-
-            <ArrayInput source='variants'>
-              <SimpleFormIterator inline>
-                <SelectInput source='color' choices={Object.keys(colorSelector)} resettable/>
-                <SelectInput source='size' choices={sizeSelector}/>
-                <NumberInput source='stockQuantity'/>
-              </SimpleFormIterator>
-            </ArrayInput>
-
-            <ArrayInput source='productResources'>
-              <SimpleFormIterator inline>
-              <TextInput source='name' validate={[required()]}/>
-              <ImageInput source='url' label={'Product Image'}>
-              <ImageField source="src" title="title" />
-              </ImageInput>
-              <SelectInput source='type' choices={["image"]}/>
-              <BooleanInput source='isPrimary'/>
-              </SimpleFormIterator>
-            </ArrayInput>
-            
-            <NumberInput source='rating'/>
-            <BooleanInput source='newArrival'/>
-        </SimpleForm>
+    <Create transform={transformData}>
+      <SimpleForm>
+        {/* Match the keys from the Shopping entity */}
+        <TextInput
+          source="product"
+          label="Product Name"
+          validate={[required()]}
+        />
+        <NumberInput source="cost" label="Cost" validate={[required()]} />
+        <TextInput source="category" label="Category" validate={[required()]} />
+        <ImageInput
+          source="image"
+          label="Product Image"
+          accept="image/*"
+          validate={[required()]}
+        />
+        <TextInput source="description" label="Description" />
+      </SimpleForm>
     </Create>
-  )
-}
+  );
+};
 
-export default CreateProduct
+export default CreateProduct;

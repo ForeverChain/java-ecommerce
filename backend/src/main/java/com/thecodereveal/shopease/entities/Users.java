@@ -18,8 +18,8 @@ import java.util.UUID;
 public class Users {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // Changed to Identity strategy for Long
+    private Long id; // Changed UUID to Long
 
     @Column(name = "C_USER_NAME", nullable = false)
     private String userName;
